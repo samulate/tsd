@@ -3,6 +3,7 @@ venv/
 __pycache__/
 *.py[cod]
 .cache/
+.uv-cache/
 .pytest_cache/
 .ruff_cache/
 *.egg-info/
@@ -18,14 +19,6 @@ dist/
 *.key
 datasets/
 data/
+runs/
 *.pt
-runs/*
-!runs/detect/
-runs/detect/*
-!runs/detect/epoch500tsd/
-runs/detect/epoch500tsd/*
-!runs/detect/epoch500tsd/train/
-runs/detect/epoch500tsd/train/*
-!runs/detect/epoch500tsd/train/weights/
-runs/detect/epoch500tsd/train/weights/*
-!runs/detect/epoch500tsd/train/weights/best.pt
+!models/best.pt

@@ -1,9 +1,22 @@
-from ultralytics import YOLO
+import argparse
+from pathlib import Path
+
 import cv2
 import numpy as np
 
-model = YOLO('/Users/samvathk/Desktop/Traffic Sign Detection 2/runs/detect/epoch500tsd/train/weights/best.pt')
 if __name__ == "__main__": 
+    parser = argparse.ArgumentParser(description='Detect traffic signs using a webcam.')
+    parser.add_argument('--camera', type=int, default=0, help='Camera index')
+    parser.add_argument('--device', default='cpu', help='cpu, mps, or a CUDA device such as 0')
+    args = parser.parse_args()
+
+    weights = Path(__file__).resolve().parent / 'models' / 'best.pt'
+    if not weights.is_file():
+        parser.error(f'Model weights not found: {weights}')
+
+    from ultralytics import YOLO
+
+    model = YOLO(str(weights))
 
     #Setting the resolution to transform the webcam stream to
     STREAMWIDTH = 1024
@@ -71,46 +84,34 @@ if __name__ == "__main__":
         'Yield'
     ]
     #Get stream from first camera
-    webcamStream = cv2.VideoCapture(0)
+    webcamStream = cv2.VideoCapture(args.camera)
 
     #Testing if I can open the webcam
     if not webcamStream.isOpened():
-        print("Error: Could not open camera.")
-        exit()
+        webcamStream.release()
+        parser.exit(1, f'Error: Could not open camera {args.camera}. Check camera permissions or try --camera 1.\n')
     
     #Changing the resolution
     webcamStream.set(cv2.CAP_PROP_FRAME_WIDTH, STREAMWIDTH)
     webcamStream.set(cv2.CAP_PROP_FRAME_HEIGHT, STREAMHEIGHT)
 
-    while True:
-        #Capture frame by frame
-        ret, frame = webcamStream.read()
+    try:
+        while True:
+            #Capture frame by frame
+            ret, frame = webcamStream.read()
 
-        if not ret:
-            print("Error: Couldn't read a frame.")
-            continue
+            if not ret:
+                print("Error: Couldn't read a frame.")
+                break
 
-        frame = cv2.resize(frame, (1024, 576))
-
-
-        #If the frame is retrieved succesfully
-        if ret: 
+            frame = cv2.resize(frame, (1024, 576))
 
             #Filter the color out (make it black and white)
             gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            #gray_frame = gray_frame / 255.0
             rgb_gray_frame = np.stack([gray_frame] * 3, axis=-1)
 
-
-            gray_frame = np.expand_dims(gray_frame, axis=0)
-            gray_frame = np.expand_dims(gray_frame, axis=-1)
-            print(rgb_gray_frame.shape)
-
             #Use YOLO to detect on the frame
-            detections = model(rgb_gray_frame)[0]
-
-            #Initialize Results
-            results = []
+            detections = model(rgb_gray_frame, device=args.device, verbose=False)[0]
 
             #Loop over detections
             for data in detections.boxes.data.tolist():
@@ -131,16 +132,11 @@ if __name__ == "__main__":
             cv2.imshow('Traffic Sign Detection', frame)
 
             #Exit loop with the 'q' key
-            if cv2.waitKey(1) & 0xFF == ord('`') or cv2.waitKey(1) & 0xFF == ord('~'):
+            if cv2.waitKey(1) & 0xFF in (ord('q'), ord('`'), ord('~')):
                 break
-        
-        else:
-            print("Error: Could not read frame.")
-            break
-    
-    #Release the capture and close all the windows when done
-    webcamStream.release()
-    cv2.destroyAllWindows()
+    finally:
+        webcamStream.release()
+        cv2.destroyAllWindows()
 
 
 

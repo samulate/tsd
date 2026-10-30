@@ -1,12 +1,16 @@
 from ultralytics import YOLO
+from pathlib import Path
 import cv2
 import numpy as np
 import tkinter as tk
 from tkinter import PanedWindow, Frame
 from PIL import Image, ImageTk
 
-model = YOLO('/Users/samvathk/Desktop/TSD ALL/Traffic Sign Detection 2/runs/detect/epoch500tsd/train/weights/best.pt')
 if __name__ == "__main__":
+    weights = Path(__file__).resolve().parent / 'models' / 'best.pt'
+    if not weights.is_file():
+        raise SystemExit(f'Model weights not found: {weights}')
+    model = YOLO(str(weights))
 
     #Setting the resolution to transform the webcam stream to
     STREAMWIDTH = 1024
@@ -50,10 +54,16 @@ if __name__ == "__main__":
     #Get stream from first camera
     webcamStream = cv2.VideoCapture(0)
 
+    def closeWindow():
+        webcamStream.release()
+        window.destroy()
+
+    window.protocol('WM_DELETE_WINDOW', closeWindow)
+
     #Testing if I can open the webcam
     if not webcamStream.isOpened():
-        print("Error: Could not open camera.")
-        exit()
+        closeWindow()
+        raise SystemExit('Error: Could not open camera. Check camera permissions.')
     
     #Changing the resolution
     webcamStream.set(cv2.CAP_PROP_FRAME_WIDTH, STREAMWIDTH)
@@ -73,6 +83,7 @@ if __name__ == "__main__":
 
         if not ret:
             print("Error: Couldn't read a frame.")
+            closeWindow()
             return
 
         frame = cv2.resize(frame, (1024, 576))
@@ -89,10 +100,9 @@ if __name__ == "__main__":
 
             gray_frame = np.expand_dims(gray_frame, axis=0)
             gray_frame = np.expand_dims(gray_frame, axis=-1)
-            print(rgb_gray_frame.shape)
 
             #Use YOLO to detect on the frame
-            detections = model(rgb_gray_frame)[0]
+            detections = model(rgb_gray_frame, device='cpu', verbose=False)[0]
 
             #Initialize Results
             results = []
@@ -147,7 +157,10 @@ if __name__ == "__main__":
     window.bind("<Configure>", resizeEvent)
 
     #Start updating the video display
-    updateVideo()
+    try:
+        updateVideo()
 
-    #Run the tkinter main loop
-    window.mainloop()
+        #Run the tkinter main loop
+        window.mainloop()
+    finally:
+        webcamStream.release()

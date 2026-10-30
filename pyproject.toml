@@ -1,0 +1,17 @@
+[project]
+name = "traffic-sign-detection"
+version = "0.1.0"
+description = "Traffic sign detection with YOLOv8 and OpenCV"
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "ultralytics==8.4.175",
+    "torch==2.14.1",
+    "torchvision==0.29.1",
+    "numpy==2.5.4",
+    "opencv-python==5.0.0.93",
+    "pillow==12.3.0",
+]
+
+[tool.uv]
+package = false
